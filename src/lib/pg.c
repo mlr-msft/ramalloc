@@ -2,33 +2,33 @@
 
 /* This file is part of the *ramalloc* project at <http://fmrl.org>.
  * Copyright (c) 2011, Michael Lowell Roberts.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are 
- * met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- *  * Redistributions of source code must retain the above copyright 
- *  notice, this list of conditions and the following disclaimer. 
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
  *
- *  * Redistributions in binary form must reproduce the above copyright 
- *  notice, this list of conditions and the following disclaimer in the 
+ *  * Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
  *  documentation and/or other materials provided with the distribution.
- * 
- *  * Neither the name of the copyright holder nor the names of 
- *  contributors may be used to endorse or promote products derived 
- *  from this software without specific prior written permission. 
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER 
+ *  * Neither the name of the copyright holder nor the names of
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
  * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED 
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #include <ramalloc/pg.h>
@@ -116,13 +116,13 @@ ram_reply_t ram_slab_initialize()
 
       RAM_FAIL_TRAP(rammem_pagesize(&stage.rampgg_pagesize));
       RAM_FAIL_TRAP(rammem_mmapgran(&mmapgran));
-      /* i am the page allocator, so i have access to the entire page 
+      /* i am the page allocator, so i have access to the entire page
        * (i.e. 'page_size' == 'writable_zone') */
-      RAMFOOT_MKSPEC(&stage.rampgg_footerspec, rampg_footer_t, 
+      RAMFOOT_MKSPEC(&stage.rampgg_footerspec, rampg_footer_t,
             stage.rampgg_pagesize, "PAGE");
       /* the node capacity is the number of pages a node keeps track of. */
       stage.rampgg_nodecapacity = mmapgran / stage.rampgg_pagesize;
-      RAM_FAIL_EXPECT(RAM_REPLY_UNSUPPORTED, 
+      RAM_FAIL_EXPECT(RAM_REPLY_UNSUPPORTED,
             stage.rampgg_nodecapacity <= RAMPG_MAXCAPACITY);
       stage.rampgg_granularity = stage.rampgg_footerspec.footer_offset;
       stage.rampgg_initflag = 1;
@@ -156,7 +156,7 @@ ram_reply_t rampg_mkpool2(rampg_pool_t *pool_arg, rampg_appetite_t appetite_arg)
    assert(pool_arg != NULL);
    assert(rampg_theglobals.rampgg_initflag);
 
-   RAM_FAIL_TRAP(ramvec_mkpool(&pool_arg->rampgp_vpool, rampg_theglobals.rampgg_nodecapacity, 
+   RAM_FAIL_TRAP(ramvec_mkpool(&pool_arg->rampgp_vpool, rampg_theglobals.rampgg_nodecapacity,
       &rampg_mkvnode));
    pool_arg->rampgp_appetite = appetite_arg;
 
@@ -324,9 +324,9 @@ ram_reply_t rampg_initvnode(rampg_vnode_t *node_arg)
    assert(rampg_theglobals.rampgg_initflag);
    assert(node_arg != NULL);
 
-   memset(node_arg, 0, sizeof(node_arg));
+   memset(node_arg, 0, sizeof(*node_arg));
    /* i reserve the page because there doesn't seem to be a need until memory is actually
-    * acquired. this still uses address space but preserves hardware for those pages that 
+    * acquired. this still uses address space but preserves hardware for those pages that
     * are actually in use. */
    RAM_FAIL_TRAP(ramsys_reserve(&node_arg->rampgvn_pages));
    /* therefore, all commit flags start out reset. */
@@ -404,7 +404,7 @@ ram_reply_t rampg_calcindex(rampg_index_t *index_arg,
 ram_reply_t rampg_chkpool(const rampg_pool_t *pool_arg)
 {
    RAM_FAIL_NOTNULL(pool_arg);
-   
+
    assert(rampg_theglobals.rampgg_initflag);
    RAM_FAIL_TRAP(ramslot_chkpool(&pool_arg->rampgp_slotpool));
    RAM_FAIL_TRAP(ramvec_chkpool(&pool_arg->rampgp_vpool, &rampg_chkvnode));
@@ -435,7 +435,7 @@ ram_reply_t rampg_chkvnode(const ramvec_node_t *node_arg)
    /* the commit flags should only contain values 0 or 1 */
    for (i = 0; i < rampg_theglobals.rampgg_nodecapacity; ++i)
    {
-      RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT, 
+      RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT,
          0 == node->rampgvn_commitflags[i] || 1 == node->rampgvn_commitflags[i]);
    }
 
