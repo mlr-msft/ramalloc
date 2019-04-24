@@ -35,16 +35,21 @@
 #define RAMCOMPAT_H_IS_INCLUDED
 
 #include "compiler.h"
+#include "default.h"
 #include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef ram_default_mkuserdata_t ramcompat_mkuserdata_t;
+
 RAMSYS_EXPORT void * ramcompat_malloc(size_t size_arg);
 RAMSYS_EXPORT void ramcompat_free(void *ptr_arg);
 RAMSYS_EXPORT void * ramcompat_calloc(size_t count_arg, size_t size_arg);
 RAMSYS_EXPORT void * ramcompat_realloc(void *ptr_arg, size_t size_arg);
+RAMSYS_EXPORT ram_reply_t ramcompat_stoud(const void *ptr_arg, ramcompat_mkuserdata_t init_arg, void *context_arg);
+RAMSYS_EXPORT ram_reply_t ramcompat_rclud(void **userdata_arg, const void *ptr_arg);
 
 #ifdef RAM_WANT_OVERRIDE
 RAMSYS_EXPORT void * malloc(size_t size_arg);

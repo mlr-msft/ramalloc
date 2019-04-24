@@ -37,6 +37,12 @@
 #include <memory.h>
 #include <string.h>
 
+struct tag {
+   size_t tag_sz;
+   void *tag_userdata;
+   char tag_moar[];
+};
+
 void * ramcompat_malloc(size_t size_arg)
 {
    if (0 == size_arg)
@@ -49,15 +55,20 @@ void * ramcompat_malloc(size_t size_arg)
       e = ram_default_acquire(&p, size_arg);
       switch (e)
       {
-      default:
-         return NULL;
-      case RAM_REPLY_OK:
-         return p;
-      case RAM_REPLY_RANGEFAIL:
-         /* ramalloc will return RAM_REPLY_RANGEFAIL if the allocator cannot accomidate
-          * an object of size 'size_arg' (i.e. too big or too small). i can defer to
-          * the supplimental allocator for this. */
-         return rammem_supmalloc(size_arg);
+         default:
+            return NULL;
+         case RAM_REPLY_OK:
+            return p;
+         case RAM_REPLY_RANGEFAIL: {
+            /* ramalloc will return `RAM_REPLY_RANGEFAIL` if the allocator
+             * cannot accomidate an object of size `size_arg` (i.e. too big
+             * or too small). i can defer to the supplimental allocator for
+             * this. */
+            char * const q = (char *)rammem_supmalloc(size_arg + sizeof(struct tag));
+
+            memset(q, 0, sizeof(struct tag));
+            return q + sizeof(struct tag);
+         }
       }
    }
 }
@@ -75,20 +86,25 @@ void ramcompat_free(void *ptr_arg)
       e = ram_default_query(&sz, ptr_arg);
       switch (e)
       {
-      default:
-         /* i don't have any other avenue through which i can report an error. */
-         ram_fail_panic("i got an unexpected eror from ramdefault_query().");
-         return;
-      case RAM_REPLY_OK:
-         e = ram_default_discard(ptr_arg);
-         if (RAM_REPLY_OK != e)
-            ram_fail_panic("i got an unexpected eror from ramdefault_discard().");
-         return;
-      case RAM_REPLY_NOTFOUND:
-         /* ramalloc will return RAM_REPLY_NOTFOUND if ptr_arg was allocated with a different
-          * allocator. */
-         rammem_supfree(ptr_arg);
-         return;
+         default:
+            /* i don't have any other avenue through which i can report an
+             * error. */
+            ram_fail_panic("i got an unexpected eror from ramdefault_query().");
+            return;
+         case RAM_REPLY_OK:
+            e = ram_default_discard(ptr_arg);
+            if (RAM_REPLY_OK != e)
+               ram_fail_panic("i got an unexpected eror from ramdefault_discard().");
+            return;
+         case RAM_REPLY_NOTFOUND: {
+            /* ramalloc will return `RAM_REPLY_NOTFOUND` if `ptr_arg` was
+             * allocated with a different allocator, which we assume is the
+             * supplimental allocator. */
+            char * const p = (char *)ptr_arg;
+
+            rammem_supfree(p - sizeof(struct tag));
+            return;
+         }
       }
    }
 }
@@ -146,6 +162,70 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
    ramcompat_free(ptr_arg);
    return RAM_REPLY_OK;
 }
+
+ram_reply_t ramcompat_stoud(const void *ptr_arg, ramcompat_mkuserdata_t init_arg, void *context_arg) {
+   ram_reply_t e = RAM_REPLY_INSANE;
+   size_t sz = 0;
+   char *p = NULL;
+   struct tag *tag = NULL;
+
+   RAM_FAIL_NOTNULL(ptr_arg);
+   RAM_FAIL_NOTNULL(init_arg);
+
+   e = ram_default_query(&sz, (void *)ptr_arg);
+   switch (e) {
+      default:
+         /* i don't have any other avenue through which i can report an
+          * error. */
+         ram_fail_panic("i got an unexpected eror from ramdefault_query().");
+         return RAM_REPLY_INSANE;
+      case RAM_REPLY_OK:
+         RAM_FAIL_TRAP(ram_default_stoud(ptr_arg, init_arg, context_arg));
+         return RAM_REPLY_OK;
+      case RAM_REPLY_NOTFOUND:
+         /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if
+          * `ptr_arg` was allocated with a different allocator. */
+         break;
+   }
+
+   p = (char *)ptr_arg;
+   tag = (struct tag *)(p - sizeof(struct tag));
+   RAM_FAIL_TRAP(init_arg(&tag->tag_userdata, ptr_arg, tag->tag_sz, context_arg));
+   return 0;
+}
+
+ram_reply_t ramcompat_rclud(void **userdata_arg, const void *ptr_arg) {
+   ram_reply_t e = RAM_REPLY_INSANE;
+   size_t sz = 0;
+   char *p = NULL;
+   struct tag *tag = NULL;
+
+   RAM_FAIL_NOTNULL(userdata_arg);
+   *userdata_arg = NULL;
+   RAM_FAIL_NOTNULL(ptr_arg);
+
+   e = ram_default_query(&sz, (void *)ptr_arg);
+   switch (e) {
+      default:
+         /* i don't have any other avenue through which i can report an
+          * error. */
+         ram_fail_panic("i got an unexpected eror from ramdefault_query().");
+         return RAM_REPLY_INSANE;
+      case RAM_REPLY_OK:
+         RAM_FAIL_TRAP(ram_default_rclud(userdata_arg, ptr_arg));
+         return RAM_REPLY_OK;
+      case RAM_REPLY_NOTFOUND:
+         /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if
+          * `ptr_arg` was allocated with a different allocator. */
+         break;
+   }
+
+   p = (char *)ptr_arg;
+   tag = (struct tag *)(p - sizeof(struct tag));
+   *userdata_arg = tag->tag_userdata;
+   return RAM_REPLY_OK;
+}
+
 
 #ifdef RAM_WANT_OVERRIDE
 

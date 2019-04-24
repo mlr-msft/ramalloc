@@ -58,7 +58,7 @@ typedef ram_reply_t (*ramslot_mknode_t)(ramslot_node_t **node_arg, void **slots_
    ramslot_pool_t *pool_arg);
 typedef ram_reply_t (*ramslot_rmnode_t)(ramslot_node_t *ptr_arg);
 typedef ram_reply_t (*ramslot_initslot_t)(void *slot_arg, ramslot_node_t *node_arg);
-typedef int (*ramslot_mkuserdata_t)(void **userdata_arg, void *start_arg, size_t length_arg, void *context_arg);
+typedef int (*ramslot_mkuserdata_t)(void **userdata_arg, const void *start_arg, size_t length_arg, void *context_arg);
 
 struct ramslot_node
 {
