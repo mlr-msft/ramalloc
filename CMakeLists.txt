@@ -171,6 +171,7 @@ option(WANT_OVERCONFIDENT
 	"enables (or disables) overconfident mode (unsupported)."
 	NO)
 mark_as_advanced(WANT_OVERCONFIDENT)
+option(RAM_WANT_OVERRIDE "overrides libc API" NO)
 configure_file(src/lib/config.h.in
 	${CMAKE_CURRENT_BINARY_DIR}/include/ramalloc/config.h @ONLY)
 
@@ -245,6 +246,7 @@ set(RAMALLOC_SOURCES
 	)
 
 add_library(ramalloc ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
+target_link_libraries(ramalloc Threads::Threads)
 add_splint(ramalloc ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
 # TODO: i'd like to cannonize this code.
 if(WIN32)
@@ -257,6 +259,7 @@ if(WIN32)
 		install(TARGETS ramalloc DESTINATION lib/${CMAKE_BUILD_TYPE})
 	endif()
 else()
+	target_link_libraries(ramalloc dl)
 	install(TARGETS ramalloc DESTINATION lib)
 endif()
 

@@ -2,33 +2,33 @@
 
 /* This file is part of the *ramalloc* project at <http://fmrl.org>.
  * Copyright (c) 2011, Michael Lowell Roberts.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are 
- * met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- *  * Redistributions of source code must retain the above copyright 
- *  notice, this list of conditions and the following disclaimer. 
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
  *
- *  * Redistributions in binary form must reproduce the above copyright 
- *  notice, this list of conditions and the following disclaimer in the 
+ *  * Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
  *  documentation and/or other materials provided with the distribution.
- * 
- *  * Neither the name of the copyright holder nor the names of 
- *  contributors may be used to endorse or promote products derived 
- *  from this software without specific prior written permission. 
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER 
+ *  * Neither the name of the copyright holder nor the names of
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
  * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED 
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #ifndef RAMALLOC_LINUX_H_IS_INCLUDED
@@ -57,6 +57,17 @@ ram_reply_t ramlin_mkbarrier(ramlin_barrier_t *barrier_arg,
       size_t capacity_arg);
 ram_reply_t ramlin_rmbarrier(ramlin_barrier_t *barrier_arg);
 ram_reply_t ramlin_waitonbarrier(ramlin_barrier_t *barrier_arg);
+
+#if RAM_WANT_OVERRIDE
+
+/* todo: probably should be something like `ramgnu_nextsym()` since the
+ * implementation depends upon a GNU extension */
+/* todo: should use typesafe versions of these functions. */
+ram_reply_t ramlin_mallocfn(void **fn_arg);
+ram_reply_t ramlin_freefn(void **fn_arg);
+ram_reply_t ramlin_reallocfn(void **fn_arg);
+
+#endif
 
 #define ramsys_initialize ramuix_initialize
 /* virtual memory mapping */
@@ -99,6 +110,12 @@ typedef ramlin_barrier_t ramsys_barrier_t;
 /* file manipulation */
 #define RAMSYS_PATH_MAX RAMUIX_PATH_MAX
 #define ramsys_basename ramuix_basename
+
+#if RAM_WANT_OVERRIDE
+#define ramsys_mallocfn ramlin_mallocfn
+#define ramsys_freefn ramlin_freefn
+#define ramsys_reallocfn ramlin_reallocfn
+#endif
 
 #endif /* RAMSYS_LINUX */
 
