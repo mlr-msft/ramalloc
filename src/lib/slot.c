@@ -2,33 +2,33 @@
 
 /* This file is part of the *ramalloc* project at <http://fmrl.org>.
  * Copyright (c) 2011, Michael Lowell Roberts.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are 
- * met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- *  * Redistributions of source code must retain the above copyright 
- *  notice, this list of conditions and the following disclaimer. 
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
  *
- *  * Redistributions in binary form must reproduce the above copyright 
- *  notice, this list of conditions and the following disclaimer in the 
+ *  * Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
  *  documentation and/or other materials provided with the distribution.
- * 
- *  * Neither the name of the copyright holder nor the names of 
- *  contributors may be used to endorse or promote products derived 
- *  from this software without specific prior written permission. 
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER 
+ *  * Neither the name of the copyright holder nor the names of
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
  * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED 
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #include <ramalloc/slot.h>
@@ -49,12 +49,12 @@ typedef struct ramslot_freeslot
    ramslot_index_t ramslotfs_next;
 } ramslot_freeslot_t;
 
-static ram_reply_t ramslot_mkpool2(ramslot_pool_t *pool_arg, size_t granularity_arg, 
+static ram_reply_t ramslot_mkpool2(ramslot_pool_t *pool_arg, size_t granularity_arg,
    size_t nodecap_arg, ramslot_mknode_t mknode_arg, ramslot_rmnode_t rmnode_arg,
    ramslot_initslot_t initslot_arg);
 static ram_reply_t ramslot_mknode(ramvec_node_t **node_arg, ramvec_pool_t *pool_arg);
 static ram_reply_t ramslot_initnode(ramslot_node_t *node_arg, ramslot_pool_t *pool_arg, char *slots_arg);
-static ram_reply_t ramslot_calcindex(ramslot_index_t *idx_arg, const ramslot_node_t *node_arg, 
+static ram_reply_t ramslot_calcindex(ramslot_index_t *idx_arg, const ramslot_node_t *node_arg,
    const char *ptr_arg);
 static ram_reply_t ramslot_chknode(const ramvec_node_t *node_arg);
 static ram_reply_t ramslot_chkfree(const ramslot_node_t *node_arg);
@@ -65,7 +65,7 @@ static ram_reply_t ramslot_chkfree(const ramslot_node_t *node_arg);
 
 
 
-ram_reply_t ramslot_mkpool(ramslot_pool_t *pool_arg, size_t granularity_arg, 
+ram_reply_t ramslot_mkpool(ramslot_pool_t *pool_arg, size_t granularity_arg,
    size_t nodecap_arg, ramslot_mknode_t mknode_arg, ramslot_rmnode_t rmnode_arg,
    ramslot_initslot_t initslot_arg)
 {
@@ -81,8 +81,8 @@ ram_reply_t ramslot_mkpool(ramslot_pool_t *pool_arg, size_t granularity_arg,
    return e;
 }
 
-ram_reply_t ramslot_mkpool2(ramslot_pool_t *pool_arg, size_t granularity_arg, 
-   size_t nodecap_arg, ramslot_mknode_t mknode_arg, 
+ram_reply_t ramslot_mkpool2(ramslot_pool_t *pool_arg, size_t granularity_arg,
+   size_t nodecap_arg, ramslot_mknode_t mknode_arg,
    ramslot_rmnode_t rmnode_arg, ramslot_initslot_t initslot_arg)
 {
 
@@ -228,17 +228,17 @@ ram_reply_t ramslot_initnode(ramslot_node_t *node_arg, ramslot_pool_t *pool_arg,
    RAM_FAIL_TRAP(ramslot_sztoidx(&ii, pool_arg->ramslotp_vpool.ramvecvp_nodecapacity));
    for (i = ii - 1; i >= 0; j = (i--))
    {
-      ramslot_freeslot_t * const s = 
+      ramslot_freeslot_t * const s =
          (ramslot_freeslot_t *)RAMSLOT_GETSLOT(node_arg, i, pool_arg->ramslotp_granularity);
-      
+
       s->ramslotfs_next = j;
    }
    node_arg->ramslotn_freestk = 0;
-   
+
    return RAM_REPLY_OK;
 }
 
-ram_reply_t ramslot_calcindex(ramslot_index_t *idx_arg, const ramslot_node_t *node_arg, 
+ram_reply_t ramslot_calcindex(ramslot_index_t *idx_arg, const ramslot_node_t *node_arg,
    const char *ptr_arg)
 {
    div_t d = {0};
@@ -275,7 +275,7 @@ ram_reply_t ramslot_calcindex(ramslot_index_t *idx_arg, const ramslot_node_t *no
 ram_reply_t ramslot_chkpool(const ramslot_pool_t *pool_arg)
 {
    RAM_FAIL_NOTNULL(pool_arg);
-   
+
    RAM_FAIL_TRAP(ramvec_chkpool(&pool_arg->ramslotp_vpool, &ramslot_chknode));
 
    return RAM_REPLY_OK;
@@ -292,12 +292,12 @@ ram_reply_t ramslot_chknode(const ramvec_node_t *node_arg)
    /* the node cannot be empty. */
    RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT, !RAMSLOT_ISEMPTY(node));
    /* the node count cannot exceed the capacity. */
-   RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT, 
+   RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT,
          node->ramslotn_count <= node->ramslotn_vnode.ramvecn_vpool->ramvecvp_nodecapacity);
    /* if the node is full, the count should match the capacity. */
    if (RAMSLOT_ISFULL(node))
    {
-      RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT, 
+      RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT,
          node->ramslotn_count == node->ramslotn_vnode.ramvecn_vpool->ramvecvp_nodecapacity);
    }
    /* i check the free stack. */
@@ -323,7 +323,7 @@ ram_reply_t ramslot_chkfree(const ramslot_node_t *node_arg)
    idx = node_arg->ramslotn_freestk;
    for (i = 0; i < count && idx != RAMSLOT_NIL_INDEX; ++i)
    {
-      ramslot_freeslot_t * const s = 
+      ramslot_freeslot_t * const s =
          (ramslot_freeslot_t *)RAMSLOT_GETSLOT(node_arg, idx, pool->ramslotp_granularity);
 
       idx = s->ramslotfs_next;
@@ -344,5 +344,29 @@ ram_reply_t ramslot_getgranularity(size_t *granularity_arg, const ramslot_pool_t
    RAM_FAIL_NOTNULL(slotpool_arg);
 
    *granularity_arg = slotpool_arg->ramslotp_granularity;
+   return RAM_REPLY_OK;
+}
+
+ram_reply_t ramslot_stoud(ramslot_node_t *node_arg, ramslot_mkuserdata_t init_arg, void *context_arg) {
+   ramslot_pool_t *pool = NULL;
+   size_t length = 0;
+
+   RAM_FAIL_NOTNULL(node_arg);
+   RAM_FAIL_NOTNULL(init_arg);
+
+   pool = RAM_CAST_STRUCTBASE(ramslot_pool_t, ramslotp_vpool, node_arg->ramslotn_vnode.ramvecn_vpool);
+   length = pool->ramslotp_vpool.ramvecvp_nodecapacity * pool->ramslotp_granularity;
+
+   RAM_FAIL_TRAP(init_arg(&node_arg->ramslotn_userdata, node_arg->ramslotn_slots, length, context_arg));
+   return RAM_REPLY_OK;
+}
+
+ram_reply_t ramslot_rclud(void **userdata_arg, const ramslot_node_t *node_arg) {
+   RAM_FAIL_NOTNULL(userdata_arg);
+   *userdata_arg = NULL;
+   RAM_FAIL_NOTNULL(node_arg);
+
+
+   *userdata_arg = node_arg->ramslotn_userdata;
    return RAM_REPLY_OK;
 }

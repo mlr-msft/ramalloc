@@ -122,3 +122,15 @@ ram_reply_t ram_default_check()
 
    return RAM_REPLY_OK;
 }
+
+ram_reply_t ram_default_stoud(const void *ptr_arg, ram_default_mkuserdata_t init_arg, void *context_arg) {
+   RAM_FAIL_TRAP(rampara_stoud(ptr_arg, init_arg, context_arg));
+
+   return RAM_REPLY_OK;
+}
+
+ram_reply_t ram_default_rclud(void **userdata_arg, const void *ptr_arg) {
+   RAM_FAIL_TRAP(rampara_rclud(userdata_arg, ptr_arg));
+
+   return RAM_REPLY_OK;
+}
