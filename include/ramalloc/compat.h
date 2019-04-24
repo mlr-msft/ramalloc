@@ -34,18 +34,27 @@
 #ifndef RAMCOMPAT_H_IS_INCLUDED
 #define RAMCOMPAT_H_IS_INCLUDED
 
+#include "compiler.h"
 #include <stddef.h>
 
-void * ramcompat_malloc(size_t size_arg);
-void ramcompat_free(void *ptr_arg);
-void * ramcompat_calloc(size_t count_arg, size_t size_arg);
-void * ramcompat_realloc(void *ptr_arg, size_t size_arg);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+RAMSYS_EXPORT void * ramcompat_malloc(size_t size_arg);
+RAMSYS_EXPORT void ramcompat_free(void *ptr_arg);
+RAMSYS_EXPORT void * ramcompat_calloc(size_t count_arg, size_t size_arg);
+RAMSYS_EXPORT void * ramcompat_realloc(void *ptr_arg, size_t size_arg);
 
 #ifdef RAM_WANT_OVERRIDE
-void * malloc(size_t size_arg);
-void free(void *ptr_arg);
-void * calloc(size_t count_arg, size_t size_arg);
-void * realloc(void *ptr_arg, size_t size_arg);
+RAMSYS_EXPORT void * malloc(size_t size_arg);
+RAMSYS_EXPORT void free(void *ptr_arg);
+RAMSYS_EXPORT void * calloc(size_t count_arg, size_t size_arg);
+RAMSYS_EXPORT void * realloc(void *ptr_arg, size_t size_arg);
 #endif // RAM_WANT_OVERRIDE
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RAMCOMPAT_H_IS_INCLUDED */

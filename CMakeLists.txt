@@ -245,7 +245,7 @@ set(RAMALLOC_SOURCES
 	src/lib/vec.c
 	)
 
-add_library(ramalloc ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
+add_library(ramalloc SHARED ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
 target_link_libraries(ramalloc Threads::Threads)
 add_splint(ramalloc ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
 # TODO: i'd like to cannonize this code.

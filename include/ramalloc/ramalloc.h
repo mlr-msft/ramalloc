@@ -39,8 +39,9 @@
 #ifndef RAMALLOC_H_IS_INCLUDED
 #define RAMALLOC_H_IS_INCLUDED
 
-#include <ramalloc/fail.h>
+#include <ramalloc/compiler.h>
 #include <ramalloc/facade.h>
+#include <ramalloc/fail.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,7 +64,7 @@ extern "C" {
  *    callstack. use a reply wrapper from fail.h to trap unexpected
  *    replies.
  */
-ram_reply_t ram_initialize(ram_malloc_t supmalloc_arg,
+RAMSYS_EXPORT ram_reply_t ram_initialize(ram_malloc_t supmalloc_arg,
       ram_free_t supfree_arg, ram_realloc_t suprealloc_arg);
 
 #ifdef __cplusplus
