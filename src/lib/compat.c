@@ -101,7 +101,7 @@ void ramcompat_free(void *ptr_arg) {
    }
 
    tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
-   if (0 == RAMSIG_CMP(master_tag_signature, tag->tag_signature)) {
+   if (0 != RAMSIG_CMP(master_tag_signature, tag->tag_signature)) {
       ram_fail_panic("i encountered a corrupt tag signature.");
       return;
    }
@@ -181,19 +181,19 @@ ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t
 
 #ifdef RAM_WANT_OVERRIDE
 
-void * malloc(size_t size_arg) {
+void * __wrap_malloc(size_t size_arg) {
    return ramcompat_malloc(size_arg);
 }
 
-void free(void *ptr_arg) {
+void __wrap_free(void *ptr_arg) {
    return ramcompat_free(ptr_arg);
 }
 
-void * calloc(size_t count_arg, size_t size_arg) {
+void * __wrap_calloc(size_t count_arg, size_t size_arg) {
    return ramcompat_calloc(count_arg, size_arg);
 }
 
-void * realloc(void *ptr_arg, size_t size_arg) {
+void * __wrap_realloc(void *ptr_arg, size_t size_arg) {
    return ramcompat_realloc(ptr_arg, size_arg);
 }
 

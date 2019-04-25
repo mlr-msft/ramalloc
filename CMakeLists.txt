@@ -247,6 +247,9 @@ set(RAMALLOC_SOURCES
 
 add_library(ramalloc SHARED ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
 target_link_libraries(ramalloc Threads::Threads)
+if(RAM_WANT_OVERRIDE)
+	target_link_libraries(ramalloc  "-Wl,--wrap=malloc" "-Wl,--wrap=free" "-Wl,--wrap=calloc" "-Wl,--wrap=realloc")
+endif(RAM_WANT_OVERRIDE)
 add_splint(ramalloc ${RAMALLOC_SOURCES} ${RAMALLOC_HEADERS})
 # TODO: i'd like to cannonize this code.
 if(WIN32)
