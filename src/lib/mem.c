@@ -36,14 +36,6 @@
 
 #define RAMMEM_ISPAGE(Ptr, Mask) (0 == ((uintptr_t)(Ptr) & ~(Mask)))
 
-#if RAM_WANT_OVERRIDE
-
-extern void * __real_malloc(size_t);
-extern void __real_free(void *);
-extern void * __real_realloc(void *, size_t);
-
-#endif // RAM_WANT_OVERRIDE
-
 typedef struct rammem_globals
 {
    rammem_malloc_t rammemg_supmalloc;
@@ -67,7 +59,7 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
    {
       if (NULL == supmalloc_arg) {
 #ifdef RAM_WANT_OVERRIDE
-         rammem_theglobals.rammemg_supmalloc = &__real_malloc;
+         RAM_FAIL_TRAP(ramsys_mallocfn((void **)&rammem_theglobals.rammemg_supmalloc));
 #else
          rammem_theglobals.rammemg_supmalloc = &malloc;
 #endif
@@ -77,7 +69,7 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
 
       if (NULL == supfree_arg) {
 #ifdef RAM_WANT_OVERRIDE
-         rammem_theglobals.rammemg_supfree = &__real_free;
+         RAM_FAIL_TRAP(ramsys_freefn((void **)&rammem_theglobals.rammemg_supfree));
 #else
          rammem_theglobals.rammemg_supfree = &free;
 #endif
@@ -88,7 +80,7 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
 
       if (NULL == suprealloc_arg) {
 #ifdef RAM_WANT_OVERRIDE
-         rammem_theglobals.rammemg_suprealloc = &__real_realloc;
+         RAM_FAIL_TRAP(ramsys_reallocfn((void **)&rammem_theglobals.rammemg_suprealloc));
 #else
          rammem_theglobals.rammemg_suprealloc = &realloc;
 #endif
