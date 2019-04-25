@@ -101,6 +101,11 @@ void ramcompat_free(void *ptr_arg) {
    }
 
    tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
+   if (0 == RAMSIG_CMP(master_tag_signature, tag->tag_signature)) {
+      ram_fail_panic("i encountered a corrupt tag signature.");
+      return;
+   }
+
    e = ram_default_query(&sz, tag);
    switch (e)
    {
@@ -165,6 +170,7 @@ ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t
    *tag_out = NULL;
 
    tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
+   RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT, 0 == RAMSIG_CMP(master_tag_signature, tag->tag_signature));
    if (NULL == tag->tag_value && NULL != mktag_in) {
       RAM_FAIL_TRAP(mktag_in(&tag->tag_value, &tag->tag_bytes, tag->tag_length, context_in));
    }
