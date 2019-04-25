@@ -139,18 +139,21 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
    }
 
    e = ram_default_query(&old_sz, ptr_arg);
-   switch (e)
-   {
-   default:
-      /* i don't have any other avenue through which i can report an error. */
-      ram_fail_panic("i got an unexpected eror from ramdefault_query().");
-      return NULL;
-   case RAM_REPLY_OK:
-      break;
-   case RAM_REPLY_NOTFOUND:
-      /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if `ptr_arg`
-       * was allocated with a different allocator. */
-      return rammem_suprealloc(ptr_arg, size_arg);
+   switch (e) {
+      default:
+         /* i don't have any other avenue through which i can report an error. */
+         ram_fail_panic("i got an unexpected eror from ramdefault_query().");
+         return NULL;
+      case RAM_REPLY_OK:
+         break;
+      case RAM_REPLY_NOTFOUND: {
+         /* ramalloc will return `RAM_REPLY_NOTFOUND` if `ptr_arg` was
+            * allocated with a different allocator, which we assume is the
+            * supplimental allocator. */
+         char * const p = (char *)ptr_arg;
+
+         return rammem_suprealloc(ptr_arg - sizeof(struct tag), size_arg + sizeof(struct tag));
+      }
    }
 
    new_ptr = ramcompat_malloc(size_arg);
