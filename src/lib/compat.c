@@ -32,64 +32,92 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #include <ramalloc/compat.h>
+
+#include <errno.h>
+#include <memory.h>
+#include <ramalloc/cast.h>
 #include <ramalloc/default.h>
 #include <ramalloc/mem.h>
-#include <memory.h>
+#include <ramalloc/sig.h>
 #include <string.h>
 
-void * ramcompat_malloc(size_t size_arg)
-{
-   if (0 == size_arg)
-      return rammem_supmalloc(size_arg);
-   else
-   {
-      ram_reply_t e = RAM_REPLY_INSANE;
-      void *p = NULL;
+static ramsig_signature_t master_tag_signature = {.ramsigs_s = {'r', 'T', 'A', 'G'}};
 
-      e = ram_default_acquire(&p, size_arg);
-      switch (e)
-      {
+struct tag {
+   ramsig_signature_t tag_signature;
+   void *tag_value;
+   size_t tag_length;
+   char tag_bytes[];
+};
+
+static ram_reply_t erasetag(struct tag *tag_in, size_t length_in);
+
+void * ramcompat_malloc(size_t size_arg) {
+   ram_reply_t e = RAM_REPLY_INSANE;
+   void *p = NULL;
+   size_t sz = 0;
+   struct tag *tag = NULL;
+
+   if (0 == size_arg) {
+      return rammem_supmalloc(size_arg);
+   }
+
+   sz = sizeof(*tag) + size_arg;
+   e = ram_default_acquire(&p, sz);
+   switch (e) {
       default:
+         errno = (int)e;
          return NULL;
       case RAM_REPLY_OK:
-         return p;
+         break;
       case RAM_REPLY_RANGEFAIL:
-         /* ramalloc will return RAM_REPLY_RANGEFAIL if the allocator cannot accomidate
-          * an object of size 'size_arg' (i.e. too big or too small). i can defer to
-          * the supplimental allocator for this. */
-         return rammem_supmalloc(size_arg);
-      }
+         /* `ram_default_acquire()` will return `RAM_REPLY_RANGEFAIL` if the
+          * allocator cannot accomidate an object of size 'size_arg' (i.e.
+          * too big or too small). i can defer to the supplimental allocator
+          * for this. */
+         p = rammem_supmalloc(sz);
+         break;
    }
+
+   tag = (struct tag *)p;
+   e = erasetag(tag, size_arg);
+   if (RAM_REPLY_OK != e) {
+      ramcompat_free(p);
+      errno = (int)e;
+      return NULL;
+   }
+
+   return &tag->tag_bytes;
 }
 
-void ramcompat_free(void *ptr_arg)
-{
-   /* free() does nothing if the pointer is NULL, so i need to emulate that. */
-   if (NULL == ptr_arg)
-      return;
-   else
-   {
-      ram_reply_t e = RAM_REPLY_INSANE;
-      size_t sz = 0;
+void ramcompat_free(void *ptr_arg) {
+   ram_reply_t e = RAM_REPLY_INSANE;
+   size_t sz = 0;
+   struct tag *tag = NULL;
 
-      e = ram_default_query(&sz, ptr_arg);
-      switch (e)
-      {
-      default:
-         /* i don't have any other avenue through which i can report an error. */
-         ram_fail_panic("i got an unexpected eror from ramdefault_query().");
-         return;
-      case RAM_REPLY_OK:
-         e = ram_default_discard(ptr_arg);
-         if (RAM_REPLY_OK != e)
-            ram_fail_panic("i got an unexpected eror from ramdefault_discard().");
-         return;
-      case RAM_REPLY_NOTFOUND:
-         /* ramalloc will return RAM_REPLY_NOTFOUND if ptr_arg was allocated with a different
-          * allocator. */
-         rammem_supfree(ptr_arg);
-         return;
-      }
+   if (NULL == ptr_arg) {
+      rammem_supfree(ptr_arg);
+      return;
+   }
+
+   tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
+   e = ram_default_query(&sz, tag);
+   switch (e)
+   {
+   default:
+      errno = (int)e;
+      return;
+   case RAM_REPLY_OK:
+      // todo: do i need to call `ram_default_query()` first?
+      e = ram_default_discard(tag);
+      if (RAM_REPLY_OK != e)
+         ram_fail_panic("i got an unexpected error from ramdefault_discard().");
+      return;
+   case RAM_REPLY_NOTFOUND:
+      /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if `ptr_arg`
+       * was allocated with a different allocator. */
+      rammem_supfree(tag);
+      return;
    }
 }
 
@@ -111,39 +139,37 @@ void * ramcompat_calloc(size_t count_arg, size_t size_arg)
 
 void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
 {
-   ram_reply_t e = RAM_REPLY_INSANE;
    size_t old_sz = 0;
-   void *new_ptr = NULL;
    size_t small_sz = 0;
+   void *new_ptr = NULL;
 
    if (NULL == ptr_arg) {
       return ramcompat_malloc(size_arg);
    }
 
-   e = ram_default_query(&old_sz, ptr_arg);
-   switch (e)
-   {
-   default:
-      /* i don't have any other avenue through which i can report an error. */
-      ram_fail_panic("i got an unexpected eror from ramdefault_query().");
-      return NULL;
-   case RAM_REPLY_OK:
-      break;
-   case RAM_REPLY_NOTFOUND:
-      /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if `ptr_arg`
-       * was allocated with a different allocator. */
-      return rammem_suprealloc(ptr_arg, size_arg);
-   }
-
    new_ptr = ramcompat_malloc(size_arg);
    if (NULL == new_ptr) {
-      ramcompat_free(ptr_arg);
       return NULL;
    }
 
    small_sz = old_sz > size_arg ? size_arg : old_sz;
    memmove(new_ptr, ptr_arg, small_sz);
    ramcompat_free(ptr_arg);
+   return new_ptr;
+}
+
+ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t mktag_in, void *context_in) {
+   struct tag *tag = NULL;
+
+   RAM_FAIL_NOTNULL(tag_out);
+   *tag_out = NULL;
+
+   tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
+   if (NULL == tag->tag_value && NULL != mktag_in) {
+      RAM_FAIL_TRAP(mktag_in(&tag->tag_value, &tag->tag_bytes, tag->tag_length, context_in));
+   }
+
+   *tag_out = tag->tag_value;
    return RAM_REPLY_OK;
 }
 
@@ -166,3 +192,13 @@ void * realloc(void *ptr_arg, size_t size_arg) {
 }
 
 #endif // RAM_WANT_OVERRIDE
+
+ram_reply_t erasetag(struct tag *tag_in, size_t length_in) {
+   RAM_FAIL_NOTNULL(tag_in);
+   RAM_FAIL_NOTZERO(length_in);
+
+   tag_in->tag_signature = master_tag_signature;
+   tag_in->tag_length = length_in;
+   tag_in->tag_value = NULL;
+   return RAM_REPLY_OK;
+}

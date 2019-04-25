@@ -35,16 +35,20 @@
 #define RAMCOMPAT_H_IS_INCLUDED
 
 #include "compiler.h"
+#include "reply.h"
 #include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef int (*ramcompat_mktag_t)(void **, const void *, size_t, void *);
+
 RAMSYS_EXPORT void * ramcompat_malloc(size_t size_arg);
 RAMSYS_EXPORT void ramcompat_free(void *ptr_arg);
 RAMSYS_EXPORT void * ramcompat_calloc(size_t count_arg, size_t size_arg);
 RAMSYS_EXPORT void * ramcompat_realloc(void *ptr_arg, size_t size_arg);
+RAMSYS_EXPORT ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t mktag_in, void *context_in);
 
 #ifdef RAM_WANT_OVERRIDE
 RAMSYS_EXPORT void * malloc(size_t size_arg);
