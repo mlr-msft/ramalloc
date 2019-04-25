@@ -45,66 +45,64 @@ struct tag {
 
 void * ramcompat_malloc(size_t size_arg)
 {
-   if (0 == size_arg)
+   ram_reply_t e = RAM_REPLY_INSANE;
+   void *p = NULL;
+
+   if (0 == size_arg || !rammem_isinit()) {
       return rammem_supmalloc(size_arg);
-   else
+   }
+
+   e = ram_default_acquire(&p, size_arg);
+   switch (e)
    {
-      ram_reply_t e = RAM_REPLY_INSANE;
-      void *p = NULL;
+      default:
+         return NULL;
+      case RAM_REPLY_OK:
+         return p;
+      case RAM_REPLY_RANGEFAIL: {
+         /* ramalloc will return `RAM_REPLY_RANGEFAIL` if the allocator
+            * cannot accomidate an object of size `size_arg` (i.e. too big
+            * or too small). i can defer to the supplimental allocator for
+            * this. */
+         char * const q = (char *)rammem_supmalloc(size_arg + sizeof(struct tag));
 
-      e = ram_default_acquire(&p, size_arg);
-      switch (e)
-      {
-         default:
-            return NULL;
-         case RAM_REPLY_OK:
-            return p;
-         case RAM_REPLY_RANGEFAIL: {
-            /* ramalloc will return `RAM_REPLY_RANGEFAIL` if the allocator
-             * cannot accomidate an object of size `size_arg` (i.e. too big
-             * or too small). i can defer to the supplimental allocator for
-             * this. */
-            char * const q = (char *)rammem_supmalloc(size_arg + sizeof(struct tag));
-
-            memset(q, 0, sizeof(struct tag));
-            return q + sizeof(struct tag);
-         }
+         memset(q, 0, sizeof(struct tag));
+         return q + sizeof(struct tag);
       }
    }
 }
 
 void ramcompat_free(void *ptr_arg)
 {
-   /* free() does nothing if the pointer is NULL, so i need to emulate that. */
-   if (NULL == ptr_arg)
+   ram_reply_t e = RAM_REPLY_INSANE;
+   size_t sz = 0;
+
+   if (NULL == ptr_arg || !rammem_isinit()) {
+      rammem_supfree(ptr_arg);
       return;
-   else
+   }
+
+   e = ram_default_query(&sz, ptr_arg);
+   switch (e)
    {
-      ram_reply_t e = RAM_REPLY_INSANE;
-      size_t sz = 0;
+      default:
+         /* i don't have any other avenue through which i can report an
+            * error. */
+         ram_fail_panic("i got an unexpected eror from ramdefault_query().");
+         return;
+      case RAM_REPLY_OK:
+         e = ram_default_discard(ptr_arg);
+         if (RAM_REPLY_OK != e)
+            ram_fail_panic("i got an unexpected eror from ramdefault_discard().");
+         return;
+      case RAM_REPLY_NOTFOUND: {
+         /* ramalloc will return `RAM_REPLY_NOTFOUND` if `ptr_arg` was
+            * allocated with a different allocator, which we assume is the
+            * supplimental allocator. */
+         char * const p = (char *)ptr_arg;
 
-      e = ram_default_query(&sz, ptr_arg);
-      switch (e)
-      {
-         default:
-            /* i don't have any other avenue through which i can report an
-             * error. */
-            ram_fail_panic("i got an unexpected eror from ramdefault_query().");
-            return;
-         case RAM_REPLY_OK:
-            e = ram_default_discard(ptr_arg);
-            if (RAM_REPLY_OK != e)
-               ram_fail_panic("i got an unexpected eror from ramdefault_discard().");
-            return;
-         case RAM_REPLY_NOTFOUND: {
-            /* ramalloc will return `RAM_REPLY_NOTFOUND` if `ptr_arg` was
-             * allocated with a different allocator, which we assume is the
-             * supplimental allocator. */
-            char * const p = (char *)ptr_arg;
-
-            rammem_supfree(p - sizeof(struct tag));
-            return;
-         }
+         rammem_supfree(p - sizeof(struct tag));
+         return;
       }
    }
 }
@@ -134,6 +132,10 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
 
    if (NULL == ptr_arg) {
       return ramcompat_malloc(size_arg);
+   }
+
+   if (!rammem_isinit()) {
+      return rammem_suprealloc(ptr_arg, size_arg);
    }
 
    e = ram_default_query(&old_sz, ptr_arg);
