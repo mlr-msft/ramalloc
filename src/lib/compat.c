@@ -58,7 +58,7 @@ void * ramcompat_malloc(size_t size_arg) {
    size_t sz = 0;
    struct tag *tag = NULL;
 
-   if (0 == size_arg) {
+   if (0 == size_arg || !rammem_isinit()) {
       return rammem_supmalloc(size_arg);
    }
 
@@ -95,7 +95,7 @@ void ramcompat_free(void *ptr_arg) {
    size_t sz = 0;
    struct tag *tag = NULL;
 
-   if (NULL == ptr_arg) {
+   if (NULL == ptr_arg || !rammem_isinit()) {
       rammem_supfree(ptr_arg);
       return;
    }

@@ -44,6 +44,7 @@ typedef struct rammem_globals
    size_t rammemg_mmapgran;
    size_t rammemg_pagesize;
    uintptr_t rammemg_pagemask;
+   int rammemg_disable;
    int rammemg_initflag;
 } rammem_globals_t;
 
@@ -110,71 +111,100 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
    }
 }
 
+int rammem_isinit() {
+   return rammem_theglobals.rammemg_initflag;
+}
+
 void * rammem_supmalloc(size_t size_arg)
 {
+   if (rammem_theglobals.rammemg_disable) {
+      return NULL;
+   }
+
    if (rammem_theglobals.rammemg_initflag) {
       return rammem_theglobals.rammemg_supmalloc(size_arg);
-   } else {
-#ifdef RAM_WANT_OVERRIDE
-      rammem_malloc_t fn = NULL;
-      ram_reply_t e = RAM_REPLY_INSANE;
-
-      e = ramsys_mallocfn((void **)&fn);
-      if (RAM_REPLY_OK != e) {
-         ram_fail_panic("i'm unable to find the system implementation of malloc().");
-         return NULL;
-      }
-
-      return fn(size_arg);
-#else
-      ram_fail_panic("i'm unable to invoke the fallback implementation of malloc() because rammem hasn't been initialized.");
-      return NULL;
-#endif
    }
+
+#ifdef RAM_WANT_OVERRIDE
+   rammem_malloc_t fn = NULL;
+   ram_reply_t e = RAM_REPLY_INSANE;
+
+   // todo: there's an issue with invoking `dlsym()`-- it calls `calloc()`
+   // which causes a stack overflow. see https://stackoverflow.com/questions/14168388/how-to-replace-default-malloc-by-code
+   rammem_theglobals.rammemg_disable = 1;
+   e = ramsys_mallocfn((void **)&fn);
+   rammem_theglobals.rammemg_disable = 0;
+   if (RAM_REPLY_OK != e) {
+      ram_fail_panic("i'm unable to find the system implementation of malloc().");
+      return NULL;
+   }
+
+   return fn(size_arg);
+#else
+   ram_fail_panic("i'm unable to invoke the fallback implementation of malloc() because rammem hasn't been initialized.");
+   return NULL;
+#endif
 }
 
 void rammem_supfree(void *ptr_arg)
 {
+   if (rammem_theglobals.rammemg_disable) {
+      return;
+   }
+
    if (rammem_theglobals.rammemg_initflag) {
       rammem_theglobals.rammemg_supfree(ptr_arg);
-   } else {
-#ifdef RAM_WANT_OVERRIDE
-      rammem_free_t fn = NULL;
-      ram_reply_t e = RAM_REPLY_INSANE;
-
-      e = ramsys_freefn((void **)&fn);
-      if (RAM_REPLY_OK != e) {
-         ram_fail_panic("i'm unable to find the system implementation of free().");
-      }
-
-      fn(ptr_arg);
-#else
-      ram_fail_panic("i'm unable to invoke the fallback implementation of free() because rammem hasn't been initialized.");
-#endif
+      return;
    }
+
+#ifdef RAM_WANT_OVERRIDE
+   rammem_free_t fn = NULL;
+   ram_reply_t e = RAM_REPLY_INSANE;
+
+   // todo: there's an issue with invoking `dlsym()`-- it calls `calloc()`
+   // which causes a stack overflow. see https://stackoverflow.com/questions/14168388/how-to-replace-default-malloc-by-code
+   rammem_theglobals.rammemg_disable = 1;
+   e = ramsys_freefn((void **)&fn);
+   rammem_theglobals.rammemg_disable = 0;
+   if (RAM_REPLY_OK != e) {
+      ram_fail_panic("i'm unable to find the system implementation of free().");
+   }
+
+   fn(ptr_arg);
+#else
+   ram_fail_panic("i'm unable to invoke the fallback implementation of free() because rammem hasn't been initialized.");
+#endif
 }
 
 void * rammem_suprealloc(void *ptr_arg, size_t size_arg)
 {
+   if (rammem_theglobals.rammemg_disable) {
+      return NULL;
+   }
+
    if (rammem_theglobals.rammemg_initflag) {
       return rammem_theglobals.rammemg_suprealloc(ptr_arg, size_arg);
-   } else {
-#ifdef RAM_WANT_OVERRIDE
-      rammem_realloc_t fn = NULL;
-      ram_reply_t e = RAM_REPLY_INSANE;
-
-      e = ramsys_reallocfn((void **)&fn);
-      if (RAM_REPLY_OK != e) {
-         ram_fail_panic("i'm unable to find the system implementation of realloc().");
-         return NULL;
-      }
-
-      return fn(ptr_arg, size_arg);
-#else
-      ram_fail_panic("i'm unable to invoke the fallback implementation of realloc() because rammem hasn't been initialized.");
-      return NULL;
-#endif
    }
+
+#ifdef RAM_WANT_OVERRIDE
+   rammem_realloc_t fn = NULL;
+   ram_reply_t e = RAM_REPLY_INSANE;
+
+   // todo: there's an issue with invoking `dlsym()`-- it calls `calloc()`
+   // which causes a stack overflow. see https://stackoverflow.com/questions/14168388/how-to-replace-default-malloc-by-code
+   rammem_theglobals.rammemg_disable = 1;
+   e = ramsys_reallocfn((void **)&fn);
+   rammem_theglobals.rammemg_disable = 0;
+   if (RAM_REPLY_OK != e) {
+      ram_fail_panic("i'm unable to find the system implementation of realloc().");
+      return NULL;
+   }
+
+   return fn(ptr_arg, size_arg);
+#else
+   ram_fail_panic("i'm unable to invoke the fallback implementation of realloc() because rammem hasn't been initialized.");
+   return NULL;
+#endif
 }
 
 ram_reply_t rammem_pagesize(size_t *pgsz_arg)
