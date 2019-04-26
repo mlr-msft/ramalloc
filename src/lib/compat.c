@@ -133,6 +133,12 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
       return NULL;
    }
 
+   errno = 0;
+   old_sz = ramcompat_msize(ptr_arg);
+   if (0 == old_sz && 0 != errno) {
+      return NULL;
+   }
+
    new_ptr = ramcompat_malloc(size_arg);
    if (NULL == new_ptr) {
       return NULL;
