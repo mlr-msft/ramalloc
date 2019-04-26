@@ -132,30 +132,5 @@ ram_reply_t ramlin_waitonbarrier2(ramlin_barrier_t *barrier_arg)
    }
 }
 
-#if RAM_WANT_OVERRIDE
-
-ram_reply_t ramlin_mallocfn(void **fn_arg) {
-   RAM_FAIL_NOTNULL(fn_arg);
-
-   *fn_arg = dlsym(RTLD_NEXT, "malloc");
-   return NULL == fn_arg ? RAM_REPLY_NOTFOUND : RAM_REPLY_OK;
-}
-
-ram_reply_t ramlin_freefn(void **fn_arg) {
-   RAM_FAIL_NOTNULL(fn_arg);
-
-   *fn_arg = dlsym(RTLD_NEXT, "free");
-   return NULL == fn_arg ? RAM_REPLY_NOTFOUND : RAM_REPLY_OK;
-}
-
-ram_reply_t ramlin_reallocfn(void **fn_arg) {
-   RAM_FAIL_NOTNULL(fn_arg);
-
-   *fn_arg = dlsym(RTLD_NEXT, "realloc");
-   return NULL == fn_arg ? RAM_REPLY_NOTFOUND : RAM_REPLY_OK;
-}
-
-#endif //RAM_WANT_OVERRIDE
-
 #endif /* RAMSYS_LINUX */
 

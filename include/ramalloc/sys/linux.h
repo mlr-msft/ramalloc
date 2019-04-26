@@ -58,17 +58,6 @@ ram_reply_t ramlin_mkbarrier(ramlin_barrier_t *barrier_arg,
 ram_reply_t ramlin_rmbarrier(ramlin_barrier_t *barrier_arg);
 ram_reply_t ramlin_waitonbarrier(ramlin_barrier_t *barrier_arg);
 
-#if RAM_WANT_OVERRIDE
-
-/* todo: probably should be something like `ramgnu_nextsym()` since the
- * implementation depends upon a GNU extension */
-/* todo: should use typesafe versions of these functions. */
-ram_reply_t ramlin_mallocfn(void **fn_arg);
-ram_reply_t ramlin_freefn(void **fn_arg);
-ram_reply_t ramlin_reallocfn(void **fn_arg);
-
-#endif
-
 #define ramsys_initialize ramuix_initialize
 /* virtual memory mapping */
 #define ramsys_pagesize ramuix_pagesize
@@ -110,12 +99,6 @@ typedef ramlin_barrier_t ramsys_barrier_t;
 /* file manipulation */
 #define RAMSYS_PATH_MAX RAMUIX_PATH_MAX
 #define ramsys_basename ramuix_basename
-
-#if RAM_WANT_OVERRIDE
-#define ramsys_mallocfn ramlin_mallocfn
-#define ramsys_freefn ramlin_freefn
-#define ramsys_reallocfn ramlin_reallocfn
-#endif
 
 #endif /* RAMSYS_LINUX */
 

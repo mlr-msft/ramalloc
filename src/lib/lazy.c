@@ -2,33 +2,33 @@
 
 /* This file is part of the *ramalloc* project at <http://fmrl.org>.
  * Copyright (c) 2011, Michael Lowell Roberts.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are 
- * met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- *  * Redistributions of source code must retain the above copyright 
- *  notice, this list of conditions and the following disclaimer. 
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
  *
- *  * Redistributions in binary form must reproduce the above copyright 
- *  notice, this list of conditions and the following disclaimer in the 
+ *  * Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
  *  documentation and/or other materials provided with the distribution.
- * 
- *  * Neither the name of the copyright holder nor the names of 
- *  contributors may be used to endorse or promote products derived 
- *  from this software without specific prior written permission. 
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER 
+ *  * Neither the name of the copyright holder nor the names of
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
  * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED 
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #include <ramalloc/lazy.h>
@@ -112,15 +112,28 @@ ram_reply_t ramlazy_release(void *ptr_arg)
 {
    ramlazy_pool_t *lpool = NULL;
    size_t sz = 0;
+   ram_reply_t e = RAM_REPLY_INSANE;
 
    RAM_FAIL_NOTNULL(ptr_arg);
 
-   RAM_FAIL_TRAP(ramlazy_query(&lpool, &sz, ptr_arg));
+   e = ramlazy_query(&lpool, &sz, ptr_arg);
+   switch (e) {
+      default:
+         RAM_FAIL_TRAP(e);
+         RAM_FAIL_UNREACHABLE();
+      case RAM_REPLY_UNINITIALIZED:
+      case RAM_REPLY_NOTFOUND:
+         return e;
+      case RAM_REPLY_OK:
+         break;
+   }
+
 #if RAM_WANT_MARKFREED
    memset(ptr_arg, RAM_WANT_MARKFREED, sz);
 #endif
+
    /* i push the pointer onto the trash stack; it will be freed on it's home
-    * thread with less synchronization and contention than i could manage from 
+    * thread with less synchronization and contention than i could manage from
     * here. */
    RAM_FAIL_TRAP(ramtra_push(&lpool->ramlazyp_trash, ptr_arg));
 
@@ -161,7 +174,7 @@ ram_reply_t ramlazy_flush(ramlazy_pool_t *lpool_arg)
    RAM_FAIL_NOTNULL(lpool_arg);
 
    /* the intent is to flush the allocator but in reality, the best i can hope for
-    * is to grab an instantaneous count of the number of items in the trash and 
+    * is to grab an instantaneous count of the number of items in the trash and
     * use that as a goal for ramlazy_reclaim(). */
    RAM_FAIL_TRAP(ramtra_size(&count, &lpool_arg->ramlazyp_trash));
    if (count)
@@ -224,6 +237,7 @@ ram_reply_t ramlazy_query(ramlazy_pool_t **lpool_arg, size_t *size_arg, void *pt
       /* i shouldn't ever get here. */
       return RAM_REPLY_INSANE;
    case RAM_REPLY_NOTFOUND:
+   case RAM_REPLY_UNINITIALIZED:
       return e;
    case RAM_REPLY_OK:
       break;

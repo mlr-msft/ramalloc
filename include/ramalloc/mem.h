@@ -42,9 +42,8 @@ typedef void * (*rammem_malloc_t)(size_t);
 typedef void (*rammem_free_t)(void *);
 typedef void * (*rammem_realloc_t)(void *, size_t);
 
-ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg, rammem_free_t supfree_arg, rammem_realloc_t suprealloc_arg);
+ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg, rammem_free_t supfree_arg);
 
-int rammem_isinit();
 void * rammem_supmalloc(size_t size_arg);
 void rammem_supfree(void *ptr_arg);
 void * rammem_suprealloc(void *ptr_arg, size_t size_arg);

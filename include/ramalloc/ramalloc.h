@@ -65,7 +65,7 @@ extern "C" {
  *    replies.
  */
 RAMSYS_EXPORT ram_reply_t ram_initialize(ram_malloc_t supmalloc_arg,
-      ram_free_t supfree_arg, ram_realloc_t suprealloc_arg);
+      ram_free_t supfree_arg);
 
 #ifdef __cplusplus
 }

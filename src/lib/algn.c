@@ -1,35 +1,35 @@
 /* ex: set softtabstop=3 shiftwidth=3 expandtab: */
 
-/* 
+/*
  * This file is part of the *ramalloc* project at <http://fmrl.org>.
  * Copyright (c) 2011, Michael Lowell Roberts.
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are 
- * met: 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- *  * Redistributions of source code must retain the above copyright 
- *  notice, this list of conditions and the following disclaimer. 
+ *  * Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
  *
- *  * Redistributions in binary form must reproduce the above copyright 
- *  notice, this list of conditions and the following disclaimer in the 
+ *  * Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
  *  documentation and/or other materials provided with the distribution.
- * 
- *  * Neither the name of the copyright holder nor the names of 
- *  contributors may be used to endorse or promote products derived 
- *  from this software without specific prior written permission. 
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER 
+ *  * Neither the name of the copyright holder nor the names of
+ *  contributors may be used to endorse or promote products derived
+ *  from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
  * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED 
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -58,7 +58,7 @@ typedef struct ramalgn_globals
    int ramalgng_initflag;
 } ramalgn_globals_t;
 
-static ram_reply_t ramalgn_mkpool2(ramalgn_pool_t *pool_arg, rampg_appetite_t appetite_arg, 
+static ram_reply_t ramalgn_mkpool2(ramalgn_pool_t *pool_arg, rampg_appetite_t appetite_arg,
    size_t granularity_arg, const ramalgn_tag_t *tag_arg);
 static ram_reply_t ramalgn_findnode(ramalgn_node_t **node_arg, char *ptr_arg);
 static ram_reply_t ramalgn_mknode(ramslot_node_t **node_arg, void **slots_arg, ramslot_pool_t *pool_arg);
@@ -100,7 +100,7 @@ ram_reply_t ramalgn_mkpool(ramalgn_pool_t *pool_arg, rampg_appetite_t appetite_a
    return e;
 }
 
-ram_reply_t ramalgn_mkpool2(ramalgn_pool_t *pool_arg, rampg_appetite_t appetite_arg, 
+ram_reply_t ramalgn_mkpool2(ramalgn_pool_t *pool_arg, rampg_appetite_t appetite_arg,
    size_t granularity_arg, const ramalgn_tag_t *tag_arg)
 {
    size_t capacity = 0;
@@ -115,7 +115,7 @@ ram_reply_t ramalgn_mkpool2(ramalgn_pool_t *pool_arg, rampg_appetite_t appetite_
    /* TODO: why is the slot capacity limit tested here and not in ramslot_mkpool()? */
    if (RAM_WANT_MINPAGECAPACITY > capacity || RAMSLOT_MAXCAPACITY < capacity)
       return RAM_REPLY_RANGEFAIL;
-   RAM_FAIL_TRAP(ramslot_mkpool(&pool_arg->ramalgnp_slotpool, granularity_arg, 
+   RAM_FAIL_TRAP(ramslot_mkpool(&pool_arg->ramalgnp_slotpool, granularity_arg,
       capacity, &ramalgn_mknode, &ramalgn_rmnode, NULL));
    if (tag_arg)
       pool_arg->ramalgnp_tag = *tag_arg;
@@ -254,7 +254,10 @@ ram_reply_t ramalgn_query(ramalgn_pool_t **apool_arg, void *ptr_arg)
    RAM_FAIL_NOTNULL(apool_arg);
    *apool_arg = NULL;
    RAM_FAIL_NOTNULL(ptr_arg);
-   RAM_FAIL_EXPECT(RAM_REPLY_INCONSISTENT, ramalgn_theglobals.ramalgng_initflag);
+
+   if (!ramalgn_theglobals.ramalgng_initflag) {
+      return RAM_REPLY_UNINITIALIZED;
+   }
 
    e = ramalgn_findnode(&anode, (char *)ptr_arg);
    switch (e)

@@ -41,87 +41,52 @@
 #include <ramalloc/sig.h>
 #include <string.h>
 
-static ramsig_signature_t master_tag_signature = {.ramsigs_s = {'r', 'T', 'A', 'G'}};
-
-struct tag {
-   ramsig_signature_t tag_signature;
-   void *tag_value;
-   size_t tag_length;
-   char tag_bytes[];
-};
-
-static ram_reply_t erasetag(struct tag *tag_in, size_t length_in);
-
 void * ramcompat_malloc(size_t size_arg) {
    ram_reply_t e = RAM_REPLY_INSANE;
    void *p = NULL;
-   size_t sz = 0;
-   struct tag *tag = NULL;
 
-   if (0 == size_arg || !rammem_isinit()) {
+   if (0 == size_arg) {
       return rammem_supmalloc(size_arg);
    }
 
-   sz = sizeof(*tag) + size_arg;
-   e = ram_default_acquire(&p, sz);
+   e = ram_default_acquire(&p, size_arg);
    switch (e) {
       default:
          errno = (int)e;
          return NULL;
       case RAM_REPLY_OK:
-         break;
+         return p;
+      case RAM_REPLY_UNINITIALIZED:
       case RAM_REPLY_RANGEFAIL:
          /* `ram_default_acquire()` will return `RAM_REPLY_RANGEFAIL` if the
           * allocator cannot accomidate an object of size 'size_arg' (i.e.
           * too big or too small). i can defer to the supplimental allocator
           * for this. */
-         p = rammem_supmalloc(sz);
+         return rammem_supmalloc(size_arg);
          break;
    }
-
-   tag = (struct tag *)p;
-   e = erasetag(tag, size_arg);
-   if (RAM_REPLY_OK != e) {
-      ramcompat_free(p);
-      errno = (int)e;
-      return NULL;
-   }
-
-   return &tag->tag_bytes;
 }
 
 void ramcompat_free(void *ptr_arg) {
    ram_reply_t e = RAM_REPLY_INSANE;
-   size_t sz = 0;
-   struct tag *tag = NULL;
 
-   if (NULL == ptr_arg || !rammem_isinit()) {
+   if (NULL == ptr_arg) {
       rammem_supfree(ptr_arg);
       return;
    }
 
-   tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
-   if (0 != RAMSIG_CMP(master_tag_signature, tag->tag_signature)) {
-      ram_fail_panic("i encountered a corrupt tag signature.");
-      return;
-   }
-
-   e = ram_default_query(&sz, tag);
+   e = ram_default_discard(ptr_arg);
    switch (e)
    {
    default:
       errno = (int)e;
       return;
    case RAM_REPLY_OK:
-      // todo: do i need to call `ram_default_query()` first?
-      e = ram_default_discard(tag);
-      if (RAM_REPLY_OK != e)
-         ram_fail_panic("i got an unexpected error from ramdefault_discard().");
       return;
    case RAM_REPLY_NOTFOUND:
       /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if `ptr_arg`
        * was allocated with a different allocator. */
-      rammem_supfree(tag);
+      ram_default_discard(ptr_arg);
       return;
    }
 }
@@ -152,6 +117,11 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
       return ramcompat_malloc(size_arg);
    }
 
+   if (0 == size_arg) {
+      ramcompat_free(ptr_arg);
+      return NULL;
+   }
+
    new_ptr = ramcompat_malloc(size_arg);
    if (NULL == new_ptr) {
       return NULL;
@@ -164,7 +134,7 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
 }
 
 ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t mktag_in, void *context_in) {
-   struct tag *tag = NULL;
+/*   struct tag *tag = NULL;
 
    RAM_FAIL_NOTNULL(tag_out);
    *tag_out = NULL;
@@ -175,7 +145,7 @@ ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t
       RAM_FAIL_TRAP(mktag_in(&tag->tag_value, &tag->tag_bytes, tag->tag_length, context_in));
    }
 
-   *tag_out = tag->tag_value;
+   *tag_out = tag->tag_value;*/
    return RAM_REPLY_OK;
 }
 
@@ -199,12 +169,3 @@ void * realloc(void *ptr_arg, size_t size_arg) {
 
 #endif // RAM_WANT_OVERRIDE
 
-ram_reply_t erasetag(struct tag *tag_in, size_t length_in) {
-   RAM_FAIL_NOTNULL(tag_in);
-   RAM_FAIL_NOTZERO(length_in);
-
-   tag_in->tag_signature = master_tag_signature;
-   tag_in->tag_length = length_in;
-   tag_in->tag_value = NULL;
-   return RAM_REPLY_OK;
-}

@@ -33,6 +33,7 @@
 
 #include <ramalloc/mem.h>
 #include <ramalloc/sys.h>
+#include <stdlib.h>
 
 #define RAMMEM_ISPAGE(Ptr, Mask) (0 == ((uintptr_t)(Ptr) & ~(Mask)))
 
@@ -40,18 +41,18 @@ typedef struct rammem_globals
 {
    rammem_malloc_t rammemg_supmalloc;
    rammem_free_t rammemg_supfree;
-   rammem_realloc_t rammemg_suprealloc;
    size_t rammemg_mmapgran;
    size_t rammemg_pagesize;
    uintptr_t rammemg_pagemask;
-   int rammemg_disable;
    int rammemg_initflag;
 } rammem_globals_t;
 
 static rammem_globals_t rammem_theglobals;
+extern void *__libc_malloc(size_t);
+extern void __libc_free(void *);
 
 ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
-      rammem_free_t supfree_arg, rammem_realloc_t suprealloc_arg)
+      rammem_free_t supfree_arg)
 {
    /* i don't support redundant calls to this function yet. */
    if (rammem_theglobals.rammemg_initflag)
@@ -59,34 +60,16 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
    else
    {
       if (NULL == supmalloc_arg) {
-#ifdef RAM_WANT_OVERRIDE
-         RAM_FAIL_TRAP(ramsys_mallocfn((void **)&rammem_theglobals.rammemg_supmalloc));
-#else
-         rammem_theglobals.rammemg_supmalloc = &malloc;
-#endif
+         rammem_theglobals.rammemg_supmalloc = &__libc_malloc;
       } else {
          rammem_theglobals.rammemg_supmalloc = supmalloc_arg;
       }
 
       if (NULL == supfree_arg) {
-#ifdef RAM_WANT_OVERRIDE
-         RAM_FAIL_TRAP(ramsys_freefn((void **)&rammem_theglobals.rammemg_supfree));
-#else
-         rammem_theglobals.rammemg_supfree = &free;
-#endif
+         rammem_theglobals.rammemg_supfree = &__libc_free;
       }
       else {
          rammem_theglobals.rammemg_supfree = supfree_arg;
-      }
-
-      if (NULL == suprealloc_arg) {
-#ifdef RAM_WANT_OVERRIDE
-         RAM_FAIL_TRAP(ramsys_reallocfn((void **)&rammem_theglobals.rammemg_suprealloc));
-#else
-         rammem_theglobals.rammemg_suprealloc = &realloc;
-#endif
-      } else {
-         rammem_theglobals.rammemg_suprealloc = suprealloc_arg;
       }
 
       RAM_FAIL_TRAP(ramsys_pagesize(&rammem_theglobals.rammemg_pagesize));
@@ -117,94 +100,21 @@ int rammem_isinit() {
 
 void * rammem_supmalloc(size_t size_arg)
 {
-   if (rammem_theglobals.rammemg_disable) {
-      return NULL;
-   }
-
    if (rammem_theglobals.rammemg_initflag) {
       return rammem_theglobals.rammemg_supmalloc(size_arg);
    }
 
-#ifdef RAM_WANT_OVERRIDE
-   rammem_malloc_t fn = NULL;
-   ram_reply_t e = RAM_REPLY_INSANE;
-
-   // todo: there's an issue with invoking `dlsym()`-- it calls `calloc()`
-   // which causes a stack overflow. see https://stackoverflow.com/questions/14168388/how-to-replace-default-malloc-by-code
-   rammem_theglobals.rammemg_disable = 1;
-   e = ramsys_mallocfn((void **)&fn);
-   rammem_theglobals.rammemg_disable = 0;
-   if (RAM_REPLY_OK != e) {
-      ram_fail_panic("i'm unable to find the system implementation of malloc().");
-      return NULL;
-   }
-
-   return fn(size_arg);
-#else
-   ram_fail_panic("i'm unable to invoke the fallback implementation of malloc() because rammem hasn't been initialized.");
-   return NULL;
-#endif
+   return __libc_malloc(size_arg);
 }
 
 void rammem_supfree(void *ptr_arg)
 {
-   if (rammem_theglobals.rammemg_disable) {
-      return;
-   }
-
    if (rammem_theglobals.rammemg_initflag) {
       rammem_theglobals.rammemg_supfree(ptr_arg);
       return;
    }
 
-#ifdef RAM_WANT_OVERRIDE
-   rammem_free_t fn = NULL;
-   ram_reply_t e = RAM_REPLY_INSANE;
-
-   // todo: there's an issue with invoking `dlsym()`-- it calls `calloc()`
-   // which causes a stack overflow. see https://stackoverflow.com/questions/14168388/how-to-replace-default-malloc-by-code
-   rammem_theglobals.rammemg_disable = 1;
-   e = ramsys_freefn((void **)&fn);
-   rammem_theglobals.rammemg_disable = 0;
-   if (RAM_REPLY_OK != e) {
-      ram_fail_panic("i'm unable to find the system implementation of free().");
-   }
-
-   fn(ptr_arg);
-#else
-   ram_fail_panic("i'm unable to invoke the fallback implementation of free() because rammem hasn't been initialized.");
-#endif
-}
-
-void * rammem_suprealloc(void *ptr_arg, size_t size_arg)
-{
-   if (rammem_theglobals.rammemg_disable) {
-      return NULL;
-   }
-
-   if (rammem_theglobals.rammemg_initflag) {
-      return rammem_theglobals.rammemg_suprealloc(ptr_arg, size_arg);
-   }
-
-#ifdef RAM_WANT_OVERRIDE
-   rammem_realloc_t fn = NULL;
-   ram_reply_t e = RAM_REPLY_INSANE;
-
-   // todo: there's an issue with invoking `dlsym()`-- it calls `calloc()`
-   // which causes a stack overflow. see https://stackoverflow.com/questions/14168388/how-to-replace-default-malloc-by-code
-   rammem_theglobals.rammemg_disable = 1;
-   e = ramsys_reallocfn((void **)&fn);
-   rammem_theglobals.rammemg_disable = 0;
-   if (RAM_REPLY_OK != e) {
-      ram_fail_panic("i'm unable to find the system implementation of realloc().");
-      return NULL;
-   }
-
-   return fn(ptr_arg, size_arg);
-#else
-   ram_fail_panic("i'm unable to invoke the fallback implementation of realloc() because rammem hasn't been initialized.");
-   return NULL;
-#endif
+   __libc_free(ptr_arg);
 }
 
 ram_reply_t rammem_pagesize(size_t *pgsz_arg)

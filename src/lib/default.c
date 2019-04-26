@@ -55,6 +55,7 @@ ram_reply_t ram_default_acquire(void **newptr_arg, size_t size_arg)
       RAM_FAIL_TRAP(reply);
       RAM_FAIL_UNREACHABLE();
    case RAM_REPLY_RANGEFAIL:
+   case RAM_REPLY_UNINITIALIZED:
       return reply;
    case RAM_REPLY_OK:
       break;
@@ -65,9 +66,18 @@ ram_reply_t ram_default_acquire(void **newptr_arg, size_t size_arg)
 
 ram_reply_t ram_default_discard(void *ptr_arg)
 {
-   RAM_FAIL_TRAP(rampara_release(ptr_arg));
+   ram_reply_t e = RAM_REPLY_OK;
 
-   return RAM_REPLY_OK;
+   e = rampara_release(ptr_arg);
+   switch (e) {
+      default:
+         RAM_FAIL_TRAP(e);
+         RAM_FAIL_UNREACHABLE();
+      case RAM_REPLY_UNINITIALIZED:
+      case RAM_REPLY_NOTFOUND:
+      case RAM_REPLY_OK:
+         return e;
+   }
 }
 
 ram_reply_t ram_default_reclaim(size_t *count_arg, size_t goal_arg)
