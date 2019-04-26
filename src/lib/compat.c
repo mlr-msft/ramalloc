@@ -79,6 +79,7 @@ void * ramcompat_malloc(size_t size_arg) {
 
 void ramcompat_free(void *ptr_arg) {
    ram_reply_t e = RAM_REPLY_INSANE;
+   struct tag *tag = NULL;
 
    if (NULL == ptr_arg) {
       rammem_supfree(ptr_arg);
@@ -92,13 +93,19 @@ void ramcompat_free(void *ptr_arg) {
       errno = (int)e;
       return;
    case RAM_REPLY_OK:
-      return;
+      break;
    case RAM_REPLY_UNINITIALIZED:
    case RAM_REPLY_NOTFOUND:
       /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if `ptr_arg`
        * was allocated with a different allocator. */
       rammem_supfree(ptr_arg);
-      return;
+      break;
+   }
+
+   HASH_FIND_PTR(tags, &ptr_arg, tag);
+   if (NULL != tag) {
+      HASH_DEL(tags, tag);
+      ramcompat_free(tag);
    }
 }
 
@@ -188,7 +195,7 @@ ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_in, ramcompat_mktag_t 
 
    HASH_FIND_PTR(tags, &ptr_in, tag);
    if (NULL == tag) {
-      struct tag t;
+      struct tag t = {};
 
       t.tag_length = ramcompat_msize((void *)ptr_in);
       RAM_FAIL_EXPECT(RAM_REPLY_CRTFAIL, 0 != t.tag_length);
