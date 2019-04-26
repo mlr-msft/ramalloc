@@ -47,7 +47,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <libgen.h>
-#include <dlfcn.h>
+
 /* currently, there's a bug in splint that causes it to puke if <unistd.h>
  * is included. the known workaround is to wrap it in the following #ifdef.
  * see <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=473595> for more

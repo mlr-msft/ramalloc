@@ -42,9 +42,6 @@
 
 #include <ramalloc/mtx.h>
 
-#define __USE_GNU // required for `RTLD_NEXT` symbol.
-#include <dlfcn.h>
-
 static ram_reply_t
    ramlin_waitonbarrier2(ramlin_barrier_t *barrier_arg);
 
