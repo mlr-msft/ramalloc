@@ -35,12 +35,16 @@
 #include <ramalloc/sys.h>
 #include <stdlib.h>
 
+#define __USE_GNU // required for `RTLD_NEXT` symbol.
+#include <dlfcn.h>
+
 #define RAMMEM_ISPAGE(Ptr, Mask) (0 == ((uintptr_t)(Ptr) & ~(Mask)))
 
 typedef struct rammem_globals
 {
    rammem_malloc_t rammemg_supmalloc;
    rammem_free_t rammemg_supfree;
+   rammem_msize_t rammemg_supmsize;
    size_t rammemg_mmapgran;
    size_t rammemg_pagesize;
    uintptr_t rammemg_pagemask;
@@ -48,11 +52,15 @@ typedef struct rammem_globals
 } rammem_globals_t;
 
 static rammem_globals_t rammem_theglobals;
+
 extern void *__libc_malloc(size_t);
 extern void __libc_free(void *);
+extern size_t __libc_malloc_usable_size(void *);
+
+static ram_reply_t overridden_malloc_usable_size(rammem_msize_t *fn_out);
 
 ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
-      rammem_free_t supfree_arg)
+      rammem_free_t supfree_arg, rammem_msize_t supmsize_arg)
 {
    /* i don't support redundant calls to this function yet. */
    if (rammem_theglobals.rammemg_initflag)
@@ -70,6 +78,13 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
       }
       else {
          rammem_theglobals.rammemg_supfree = supfree_arg;
+      }
+
+      if (NULL == supmsize_arg) {
+         RAM_FAIL_TRAP(overridden_malloc_usable_size(&rammem_theglobals.rammemg_supmsize));
+      }
+      else {
+         rammem_theglobals.rammemg_supmsize = supmsize_arg;
       }
 
       RAM_FAIL_TRAP(ramsys_pagesize(&rammem_theglobals.rammemg_pagesize));
@@ -94,10 +109,6 @@ ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg,
    }
 }
 
-int rammem_isinit() {
-   return rammem_theglobals.rammemg_initflag;
-}
-
 void * rammem_supmalloc(size_t size_arg)
 {
    if (rammem_theglobals.rammemg_initflag) {
@@ -115,6 +126,26 @@ void rammem_supfree(void *ptr_arg)
    }
 
    __libc_free(ptr_arg);
+}
+
+ram_reply_t rammem_supmsize(size_t *size_out, void *ptr_in)
+{
+   RAM_FAIL_NOTNULL(size_out);
+
+   if (rammem_theglobals.rammemg_initflag) {
+      *size_out = rammem_theglobals.rammemg_supmsize(ptr_in);
+   } else {
+      rammem_msize_t fn;
+
+      RAM_FAIL_TRAP(overridden_malloc_usable_size(&fn));
+      *size_out = fn(ptr_in);
+   }
+
+   if (0 == *size_out) {
+      return RAM_REPLY_CRTFAIL;
+   }
+
+   return RAM_REPLY_OK;
 }
 
 ram_reply_t rammem_pagesize(size_t *pgsz_arg)
@@ -163,6 +194,28 @@ ram_reply_t rammem_getpage(char **page_arg, void *ptr_arg)
 
    *page_arg = (char *)((uintptr_t)ptr_arg &
          rammem_theglobals.rammemg_pagemask);
+
+   return RAM_REPLY_OK;
+}
+
+// todo: abstract this away.
+static ram_reply_t overridden_malloc_usable_size(rammem_msize_t *fn_out) {
+   RAM_FAIL_NOTNULL(fn_out);
+
+   /* from `man dlsym`: the correct way to test for an error is to call
+    * dlerror() to clear any old error conditions, then call dlsym(), and
+    * then call dlerror() again, saving its return value into a variable,
+    * and check whether this saved value is not NULL */
+   dlerror();
+   *fn_out = dlsym(RTLD_NEXT, "malloc_usable_size");
+   if (NULL == *fn_out) {
+      char *err = NULL;
+
+      err = dlerror();
+      if (NULL == err) {
+         return RAM_REPLY_CRTFAIL;
+      }
+   }
 
    return RAM_REPLY_OK;
 }

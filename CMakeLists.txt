@@ -128,7 +128,8 @@ endif(WIN32)
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 	${CMAKE_CURRENT_BINARY_DIR}/include
-	)
+	${CMAKE_CURRENT_SOURCE_DIR}/submodules/uthash/src
+)
 install(DIRECTORY
 		${CMAKE_CURRENT_SOURCE_DIR}/include/ramalloc
 		${CMAKE_CURRENT_BINARY_DIR}/include/ramalloc

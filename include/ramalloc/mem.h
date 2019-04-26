@@ -41,12 +41,14 @@
 typedef void * (*rammem_malloc_t)(size_t);
 typedef void (*rammem_free_t)(void *);
 typedef void * (*rammem_realloc_t)(void *, size_t);
+typedef size_t (*rammem_msize_t)(void *);
 
-ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg, rammem_free_t supfree_arg);
+ram_reply_t rammem_initialize(rammem_malloc_t supmalloc_arg, rammem_free_t supfree_arg, rammem_msize_t supmsize_arg);
 
 void * rammem_supmalloc(size_t size_arg);
 void rammem_supfree(void *ptr_arg);
 void * rammem_suprealloc(void *ptr_arg, size_t size_arg);
+ram_reply_t rammem_supmsize(size_t *size_out, void *ptr_in);
 
 ram_reply_t rammem_pagesize(size_t *pgsz_arg);
 ram_reply_t rammem_mmapgran(size_t *mg_arg);

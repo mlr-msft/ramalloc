@@ -49,6 +49,7 @@ RAMSYS_EXPORT void * ramcompat_malloc(size_t size_arg);
 RAMSYS_EXPORT void ramcompat_free(void *ptr_arg);
 RAMSYS_EXPORT void * ramcompat_calloc(size_t count_arg, size_t size_arg);
 RAMSYS_EXPORT void * ramcompat_realloc(void *ptr_arg, size_t size_arg);
+RAMSYS_EXPORT size_t ramcompat_msize(void *ptr_in);
 RAMSYS_EXPORT ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t mktag_in, void *context_in);
 
 #if RAM_WANT_OVERRIDE
@@ -56,6 +57,7 @@ RAMSYS_EXPORT void * malloc(size_t size_arg);
 RAMSYS_EXPORT void free(void *ptr_arg);
 RAMSYS_EXPORT void * calloc(size_t count_arg, size_t size_arg);
 RAMSYS_EXPORT void * realloc(void *ptr_arg, size_t size_arg);
+RAMSYS_EXPORT size_t malloc_usable_size(void *ptr_in);
 #endif // RAM_WANT_OVERRIDE
 
 #ifdef __cplusplus

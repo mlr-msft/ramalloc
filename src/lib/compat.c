@@ -40,6 +40,16 @@
 #include <ramalloc/mem.h>
 #include <ramalloc/sig.h>
 #include <string.h>
+#include <uthash.h>
+
+struct tag {
+   void *tag_ptr;
+   size_t tag_length;
+   void *tag_value;
+   UT_hash_handle hh;
+};
+
+static struct tag *tags = NULL;
 
 void * ramcompat_malloc(size_t size_arg) {
    ram_reply_t e = RAM_REPLY_INSANE;
@@ -133,19 +143,55 @@ void * ramcompat_realloc(void *ptr_arg, size_t size_arg)
    return new_ptr;
 }
 
-ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_arg, ramcompat_mktag_t mktag_in, void *context_in) {
-/*   struct tag *tag = NULL;
+size_t ramcompat_msize(void *ptr_in) {
+   ram_reply_t e = RAM_REPLY_INSANE;
+   size_t sz = 0;
+
+   if (NULL != ptr_in) {
+      e = ram_default_query(&sz, ptr_in);
+      switch (e)
+      {
+      default:
+         errno = (int)e;
+         return 0;
+      case RAM_REPLY_OK:
+         return sz;
+      case RAM_REPLY_NOTFOUND:
+         /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if
+          *`ptr_arg` was allocated with a different allocator. */
+         break;
+      }
+   }
+
+   e = rammem_supmsize(&sz, ptr_in);
+   if (RAM_REPLY_OK != e) {
+      errno = (int)e;
+      return 0;
+   }
+
+   return sz;
+}
+
+ram_reply_t ramcompat_tag(void **tag_out, const void *ptr_in, ramcompat_mktag_t mktag_in, void *context_in) {
+   struct tag *tag = NULL;
 
    RAM_FAIL_NOTNULL(tag_out);
    *tag_out = NULL;
 
-   tag = RAM_CAST_STRUCTBASE(struct tag, tag_bytes, ptr_arg);
-   RAM_FAIL_EXPECT(RAM_REPLY_CORRUPT, 0 == RAMSIG_CMP(master_tag_signature, tag->tag_signature));
-   if (NULL == tag->tag_value && NULL != mktag_in) {
-      RAM_FAIL_TRAP(mktag_in(&tag->tag_value, &tag->tag_bytes, tag->tag_length, context_in));
+   HASH_FIND_PTR(tags, &ptr_in, tag);
+   if (NULL == tag) {
+      struct tag t;
+
+      t.tag_length = ramcompat_msize((void *)ptr_in);
+      RAM_FAIL_EXPECT(RAM_REPLY_CRTFAIL, 0 != t.tag_length);
+      RAM_FAIL_TRAP(mktag_in(&t.tag_value, ptr_in, t.tag_length, context_in));
+
+      tag = ramcompat_malloc(sizeof(*tag));
+      *tag = t;
+      HASH_ADD_PTR(tags, tag_ptr, tag);
    }
 
-   *tag_out = tag->tag_value;*/
+   *tag_out = tag->tag_value;
    return RAM_REPLY_OK;
 }
 
@@ -165,6 +211,10 @@ void * calloc(size_t count_arg, size_t size_arg) {
 
 void * realloc(void *ptr_arg, size_t size_arg) {
    return ramcompat_realloc(ptr_arg, size_arg);
+}
+
+size_t malloc_usable_size(void *ptr_in) {
+   return ramcompat_msize(ptr_in);
 }
 
 #endif // RAM_WANT_OVERRIDE

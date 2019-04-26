@@ -63,7 +63,7 @@ typedef rammem_malloc_t ram_malloc_t;
  */
 typedef rammem_free_t ram_free_t;
 
-typedef rammem_realloc_t ram_realloc_t;
+typedef rammem_msize_t ram_msize_t;
 
 /**
  * @brief acquire memory (façade).
