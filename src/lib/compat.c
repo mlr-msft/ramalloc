@@ -93,10 +93,11 @@ void ramcompat_free(void *ptr_arg) {
       return;
    case RAM_REPLY_OK:
       return;
+   case RAM_REPLY_UNINITIALIZED:
    case RAM_REPLY_NOTFOUND:
       /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if `ptr_arg`
        * was allocated with a different allocator. */
-      ram_default_discard(ptr_arg);
+      rammem_supfree(ptr_arg);
       return;
    }
 }
@@ -156,6 +157,7 @@ size_t ramcompat_msize(void *ptr_in) {
          return 0;
       case RAM_REPLY_OK:
          return sz;
+      case RAM_REPLY_UNINITIALIZED:
       case RAM_REPLY_NOTFOUND:
          /* `ram_default_query()` will return `RAM_REPLY_NOTFOUND` if
           *`ptr_arg` was allocated with a different allocator. */
